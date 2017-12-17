@@ -8,26 +8,14 @@
 #include <string.h>
 #include <math.h>
 
-// helper function initially used to analyze file format
-void printCursorInfo(const char* filename) {
-    FILE* f = fopen(filename, "r");
-    XcursorImages* imgs = XcursorFileLoadAllImages(f);
-	for (int i = 0; i < imgs->nimage; i++) {
-    	XcursorImage* img = imgs->images[i];
-    	printf("%20s %3d: %d %d %d %d %d delay: %d\n", 
-                filename, i, img->size, img->width, img->height, 
-                img->xhot, img->yhot, img->delay);
-	}
-}
-
 // applies highlight and writes to new file
 void highlight(const char* filename) {
-	XcursorImages* imgs = XcursorFilenameLoadAllImages(filename);
-	for (int i = 0; i < imgs->nimage; i++) {
-    	XcursorImage* img = imgs->images[i];
+    XcursorImages* imgs = XcursorFilenameLoadAllImages(filename);
+    for (int i = 0; i < imgs->nimage; i++) {
+        XcursorImage* img = imgs->images[i];
 
         // create a new pixels area 4 times the size for highlight circle
-		XcursorPixel* p = img->pixels;
+        XcursorPixel* p = img->pixels;
         XcursorUInt w = img->width;
         XcursorUInt h = img->height;
         XcursorPixel* hl = 
@@ -73,44 +61,44 @@ void highlight(const char* filename) {
                     }
                 }
             }
-		}
-	}
+        }
+    }
 
     // write highlighted cursor to file
-	char output[255];
-	strncpy(output, "/tmp/cursors/", 13);
-	strncpy(output + 13, filename, 240);
-	printf("Writing to: %s\n", output);
-	XcursorFilenameSaveImages(output, imgs);
+    char output[255];
+    strncpy(output, "/tmp/cursors/", 13);
+    strncpy(output + 13, filename, 240);
+    printf("Writing to: %s\n", output);
+    XcursorFilenameSaveImages(output, imgs);
 
     // clean up
-	for (int i = 0; i < imgs->nimage; i++) {
-    	XcursorImage* img = imgs->images[i];
+    for (int i = 0; i < imgs->nimage; i++) {
+        XcursorImage* img = imgs->images[i];
         free(img->pixels);
     }
     XcursorImagesDestroy(imgs);
 }
 
 int main(int argc, char* argv[]) {
-	if (argc == 2) {
-		chdir(argv[1]);
-	} else {
+    if (argc == 2) {
+        chdir(argv[1]);
+    } else {
         printf("Usage: hlCursors [cursors directory]\n");
         printf("Example: hlCursors /usr/share/icons/DMZ-White/cursors\n");
         printf("Afterwards highlighted version are in /tmp/cursors\n");
         exit(0);
     }
 
-	mkdir("/tmp/cursors", 0777);
-	DIR* d = opendir(".");
-	if (d) {
-		struct dirent *dir;
+    mkdir("/tmp/cursors", 0777);
+    DIR* d = opendir(".");
+    if (d) {
+        struct dirent *dir;
         char buf[512];
         char out[512];
-		while ((dir = readdir(d)) != NULL) {
-			if (dir->d_type == DT_REG) {
-				highlight(dir->d_name);
-			}
+        while ((dir = readdir(d)) != NULL) {
+            if (dir->d_type == DT_REG) {
+                highlight(dir->d_name);
+            }
             if (dir->d_type == DT_LNK) {
                 int read = readlink(dir->d_name, buf, 511);
                 buf[read] = 0;
@@ -119,8 +107,8 @@ int main(int argc, char* argv[]) {
                 symlink(buf, out);
                 printf("Creating symlink: %s\n", out);
             }
-		}
-		closedir(d);
-	}
+        }
+        closedir(d);
+    }
 }
 
