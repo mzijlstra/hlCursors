@@ -39,6 +39,7 @@ void highlight(const char* filename, const XcursorUInt scale) {
         // set the xhot and yhot of the new img 
         hl->xhot = x + img->xhot;
         hl->yhot = y + img->yhot;
+        hl->delay = img->delay;
 
         // add the highlight circle
         XcursorUInt rad = hl->size / 2;
