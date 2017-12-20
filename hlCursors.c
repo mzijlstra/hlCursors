@@ -9,59 +9,62 @@
 #include <math.h>
 
 // applies highlight and writes to new file
-void highlight(const char* filename) {
+void highlight(const char* filename, const XcursorUInt scale) {
     XcursorImages* imgs = XcursorFilenameLoadAllImages(filename);
     for (int i = 0; i < imgs->nimage; i++) {
+        // create a new pixels area s times the size for highlight circle
         XcursorImage* img = imgs->images[i];
-
-        // create a new pixels area 4 times the size for highlight circle
-        XcursorPixel* p = img->pixels;
         XcursorUInt w = img->width;
         XcursorUInt h = img->height;
-        XcursorPixel* hl = 
-            calloc((w * 4) * (h * 4), sizeof(XcursorPixel));
+        XcursorImage* hl = XcursorImageCreate(w * scale, h * scale);
 
-        // x,y coords of where old img should go
-        XcursorUInt x = w * 1.5; 
-        XcursorUInt y = h * 1.5;
+        XcursorPixel* p = img->pixels;
+        XcursorPixel* hlp = hl->pixels;
+        // needed, new image pixels are not always cleared!
+        memset(hlp, 0, hl->width*hl->height*sizeof(XcursorPixel));
 
-        // copy cursor into bigger space
+        // x,y coords of where top left of old img should be
+        XcursorUInt x = w * (scale -1) / 2; 
+        XcursorUInt y = h * (scale -1) / 2;
+
+        // copy cursor image into the bigger space
         int j = 0;
         for (int row = 0; row < h; row++) {
             for (int col = 0; col < w; col++) {
-                j = x + (w * 4 * y) + (w * 4 * row) + col;  
-                hl[j] = p[(row * w) + col];
+                j = x + (w * scale * y) + (w * scale * row) + col;  
+                hlp[j] = p[(row * w) + col];
             }
         }
 
-        // update the img data
-        img->pixels = hl;
-        img->size = img->size * 4;
-        img->width = img->width * 4;
-        img->height = img->height * 4;
-        img->xhot = x + img->xhot;
-        img->yhot = y + img->yhot;
+        // set the xhot and yhot of the new img 
+        hl->xhot = x + img->xhot;
+        hl->yhot = y + img->yhot;
 
         // add the highlight circle
-        XcursorUInt rad = img->size / 2;
-        XcursorUInt xmid = img->width / 2;
-        XcursorUInt ymid = img->height / 2;
-        for (int row = 0; row < img->height; row++) {
-            for (int col = 0; col < img->width; col++) {
+        XcursorUInt rad = hl->size / 2;
+        XcursorUInt xmid = hl->width / 2;
+        XcursorUInt ymid = hl->height / 2;
+        w = hl->width;
+        h = hl->height;
+        for (int row = 0; row < h; row++) {
+            for (int col = 0; col < w; col++) {
                 x = abs(col - xmid);
                 y = abs(row - ymid);
                 // if pixel is fully transparant
-                if ((hl[row * img->width + col] & 0xFF000000) == 0) {
+                if ((hlp[row * w + col] & 0xFF000000) == 0) {
                     // and in circle distance from center
                     float dist = sqrt(x*x + y*y);
                     if(dist < rad -1) {
-                        hl[row * img->width + col] = 0x10666600;
+                        // pixels are 32bit ARGB 
+                        hlp[row * w + col] = 0x10666600;
                     } else if (dist < rad) { // outer rim slightly different
-                        hl[row * img->width + col] = 0x66888800;
+                        hlp[row * w + col] = 0x66888800;
                     }
                 }
             }
         }
+        imgs->images[i] = hl;
+        XcursorImageDestroy(img);
     }
 
     // write highlighted cursor to file
@@ -70,13 +73,6 @@ void highlight(const char* filename) {
     strncpy(output + 13, filename, 240);
     printf("Writing to: %s\n", output);
     XcursorFilenameSaveImages(output, imgs);
-
-    // clean up
-    for (int i = 0; i < imgs->nimage; i++) {
-        XcursorImage* img = imgs->images[i];
-        free(img->pixels);
-    }
-    XcursorImagesDestroy(imgs);
 }
 
 int main(int argc, char* argv[]) {
@@ -97,7 +93,7 @@ int main(int argc, char* argv[]) {
         char out[512];
         while ((dir = readdir(d)) != NULL) {
             if (dir->d_type == DT_REG) {
-                highlight(dir->d_name);
+                highlight(dir->d_name, 3);
             }
             if (dir->d_type == DT_LNK) {
                 int read = readlink(dir->d_name, buf, 511);
