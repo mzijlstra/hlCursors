@@ -9,7 +9,7 @@
 #include <math.h>
 
 // applies highlight and writes to new file
-void highlight(const char* filename, const XcursorUInt scale) {
+XcursorImages* highlight(const char* filename, const float scale) {
     XcursorImages* imgs = XcursorFilenameLoadAllImages(filename);
     for (int i = 0; i < imgs->nimage; i++) {
         // create a new pixels area s times the size for highlight circle
@@ -27,7 +27,7 @@ void highlight(const char* filename, const XcursorUInt scale) {
         XcursorUInt x = w * (scale -1) / 2; 
         XcursorUInt y = h * (scale -1) / 2;
 
-        // copy cursor image into the bigger space
+        // copy cursor image into center of the bigger space
         int j = 0;
         for (int row = 0; row < h; row++) {
             for (int col = 0; col < w; col++) {
@@ -67,13 +67,7 @@ void highlight(const char* filename, const XcursorUInt scale) {
         imgs->images[i] = hl;
         XcursorImageDestroy(img);
     }
-
-    // write highlighted cursor to file
-    char output[255];
-    strncpy(output, "/tmp/cursors/", 13);
-    strncpy(output + 13, filename, 240);
-    printf("Writing to: %s\n", output);
-    XcursorFilenameSaveImages(output, imgs);
+    return imgs;
 }
 
 int main(int argc, char* argv[]) {
@@ -94,7 +88,13 @@ int main(int argc, char* argv[]) {
         char out[512];
         while ((dir = readdir(d)) != NULL) {
             if (dir->d_type == DT_REG) {
-                highlight(dir->d_name, 3);
+                XcursorImages* imgs = highlight(dir->d_name, 3);
+                // write highlighted cursor to file
+                char output[255];
+                strncpy(output, "/tmp/cursors/", 13);
+                strncpy(output + 13, dir->d_name, 240);
+                printf("Writing to: %s\n", output);
+                XcursorFilenameSaveImages(output, imgs);
             }
             if (dir->d_type == DT_LNK) {
                 int read = readlink(dir->d_name, buf, 511);
