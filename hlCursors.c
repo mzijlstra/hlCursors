@@ -10,7 +10,7 @@
 
 // applies highlight and writes to new file
 XcursorImages* highlight(const char* filename, const float scale, 
-        const XcursorPixel hlColor, const XcursorPixel rimColor) {
+        const XcursorPixel hlColor, const XcursorPixel rimColor, const float rimWidth) {
     XcursorImages* imgs = XcursorFilenameLoadAllImages(filename);
     for (int i = 0; i < imgs->nimage; i++) {
         // create a new pixels area s times the size for highlight circle
@@ -56,7 +56,7 @@ XcursorImages* highlight(const char* filename, const float scale,
                 if ((hlp[row * w + col] & 0xFF000000) == 0) {
                     // and in circle distance from center
                     float dist = sqrt(x*x + y*y);
-                    if(dist < rad -1) {
+                    if(dist < rad -rimWidth) {
                         // pixels are 32bit ARGB 
                         hlp[row * w + col] = hlColor;
                     } else if (dist < rad) { // outer rim slightly different
@@ -75,6 +75,7 @@ int main(int argc, char* argv[]) {
     float scale = 3;
     XcursorPixel hlColor = 0x10666600;
     XcursorPixel rimColor = 0x66888800;
+    float rimWidth = 1;
     if (argc >= 2) {
         chdir(argv[1]);
         if (argc >= 3) {
@@ -86,11 +87,14 @@ int main(int argc, char* argv[]) {
         if (argc >= 5) {
             rimColor = strtol(argv[4], NULL, 16);
         }
+        if (argc >= 6) {
+            rimWidth = strtof(argv[5], NULL);
+        }
     } else {
         printf("Usage: hlCursors [cursors directory] [scale] [hlColor] \
-[rimColor]\n\n");
+[rimColor] [rimWidth]\n\n");
         printf("Afterwards highlighted version are in /tmp/cursors\n\n");
-        printf("The scale and color parameters are optional. \n\n");
+        printf("The scale, color and width parameters are optional. \n\n");
         printf("Scale indicates the size of the image and defaults to 3. If \
 the original cursor is 32x32, scale 2.5 would create a 80x80, putting the \
 original image in the center and drawing the highlight around it\n\n");
@@ -111,7 +115,7 @@ defaults to: 10666600, and the rim color defaults to: 66888800\n\n");
         while ((dir = readdir(d)) != NULL) {
             if (dir->d_type == DT_REG) {
                 XcursorImages* imgs = 
-                    highlight(dir->d_name, scale, hlColor, rimColor);
+                    highlight(dir->d_name, scale, hlColor, rimColor, rimWidth);
 
                 // write highlighted cursor to file
                 char output[255];
@@ -119,6 +123,7 @@ defaults to: 10666600, and the rim color defaults to: 66888800\n\n");
                 strncpy(output + 13, dir->d_name, 240);
                 printf("Writing to: %s\n", output);
                 XcursorFilenameSaveImages(output, imgs);
+                printf("done");
             }
             if (dir->d_type == DT_LNK) {
                 int read = readlink(dir->d_name, buf, 511);
@@ -132,4 +137,3 @@ defaults to: 10666600, and the rim color defaults to: 66888800\n\n");
         closedir(d);
     }
 }
-
