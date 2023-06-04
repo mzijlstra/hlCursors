@@ -12,6 +12,10 @@
 XcursorImages* highlight(const char* filename, const float scale, 
         const XcursorPixel hlColor, const XcursorPixel rimColor, const float rimWidth) {
     XcursorImages* imgs = XcursorFilenameLoadAllImages(filename);
+    if (imgs == NULL) {
+	    return NULL;
+    }
+
     for (int i = 0; i < imgs->nimage; i++) {
         // create a new pixels area s times the size for highlight circle
         XcursorImage* img = imgs->images[i];
@@ -24,11 +28,20 @@ XcursorImages* highlight(const char* filename, const float scale,
         // needed, new image pixels are not always cleared!
         memset(hlp, 0, hl->width*hl->height*sizeof(XcursorPixel));
 
+	// make the hotspot the center of the image
+	hl->xhot = hl->width / 2;
+	hl->yhot = hl->height / 2;
+        hl->delay = img->delay;
+
         // x,y coords of where top left of old img should be
+	// start by putting it in the center
         XcursorUInt x = w * (scale -1) / 2; 
         XcursorUInt y = h * (scale -1) / 2;
+	// then adjust according to the hotspot
+	x += (w / 2) - img->xhot;
+	y += (h / 2) - img->yhot;
 
-        // copy cursor image into center of the bigger space
+        // copy cursor image 
         int j = 0;
         for (int row = 0; row < h; row++) {
             for (int col = 0; col < w; col++) {
@@ -36,11 +49,6 @@ XcursorImages* highlight(const char* filename, const float scale,
                 hlp[j] = p[(row * w) + col];
             }
         }
-
-        // set the xhot and yhot of the new img 
-        hl->xhot = x + img->xhot;
-        hl->yhot = y + img->yhot;
-        hl->delay = img->delay;
 
         // add the highlight circle
         XcursorUInt rad = hl->size / 2;
@@ -116,6 +124,11 @@ defaults to: 10666600, and the rim color defaults to: 66888800\n\n");
             if (dir->d_type == DT_REG) {
                 XcursorImages* imgs = 
                     highlight(dir->d_name, scale, hlColor, rimColor, rimWidth);
+
+                if (imgs == NULL) {
+                    printf("Not copying non-cursor: %s\n", dir->d_name);
+                    continue;
+                }
 
                 // write highlighted cursor to file
                 char output[255];
